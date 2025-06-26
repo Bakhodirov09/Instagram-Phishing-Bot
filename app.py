@@ -10,8 +10,8 @@ async def on_startup(dispatcher):
     await set_default_commands(dispatcher)
     await on_startup_notify(dispatcher)
 
-async def on_shut_down():
-    await bot_shutdown(dp)
+async def on_shut_down(dispatcher):
+    await on_shutdown_notify(dispatcher)
 
 
 if __name__ == '__main__':
